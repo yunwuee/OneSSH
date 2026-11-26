@@ -2,157 +2,213 @@
 
 <img src="web/public/logo.svg" alt="OneSSH" width="88" height="88" />
 
-# OneSSH
+# OneSSH · 控制台增强版
 
-**面向 AI Agent 的集中式 SSH 网关**
+**面向 AI Agent 的集中式 SSH 网关 —— 同时也是一个顺手的多服务器运维面板**
 
-一个 Go 二进制，同时提供无状态 Streamable HTTP MCP、OAuth 2.1 授权、管理 API、实时活动流和浏览器终端。
+基于 [Lynricsy/OneSSH](https://github.com/Lynricsy/OneSSH) v0.1.22，保留全部 MCP / OAuth / 审计能力，<br/>重构了 Web 控制台：多服务器文件管理、会话常驻的终端、服务器档案、分布地图与完整的账户体系。
 
-[![CI](https://github.com/Lynricsy/OneSSH/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Lynricsy/OneSSH/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/Lynricsy/OneSSH?display_name=tag&sort=semver&label=release&color=0d9488)](https://github.com/Lynricsy/OneSSH/releases/latest)
-[![License](https://img.shields.io/github/license/Lynricsy/OneSSH?color=0d9488)](LICENSE)
-[![Go](https://img.shields.io/github/go-mod/go-version/Lynricsy/OneSSH?logo=go&logoColor=white&color=00ADD8)](go.mod)
-[![Code size](https://img.shields.io/github/languages/code-size/Lynricsy/OneSSH?color=64748b)](https://github.com/Lynricsy/OneSSH)
+[![Release](https://img.shields.io/github/v/release/yunwuee/OneSSH?include_prereleases&display_name=tag&label=release&color=0d9488)](https://github.com/yunwuee/OneSSH/releases)
+[![Upstream](https://img.shields.io/badge/upstream-Lynricsy%2FOneSSH%20v0.1.22-64748b?logo=github)](https://github.com/Lynricsy/OneSSH)
+[![License](https://img.shields.io/github/license/yunwuee/OneSSH?color=0d9488)](LICENSE)
+[![Go](https://img.shields.io/github/go-mod/go-version/yunwuee/OneSSH?logo=go&logoColor=white&color=00ADD8)](go.mod)
+[![Last commit](https://img.shields.io/github/last-commit/yunwuee/OneSSH/feat%2Fkey-upload-dashboard?color=64748b)](https://github.com/yunwuee/OneSSH/commits/feat/key-upload-dashboard)
 
-[![Last commit](https://img.shields.io/github/last-commit/Lynricsy/OneSSH?color=64748b)](https://github.com/Lynricsy/OneSSH/commits/main)
-[![Commit activity](https://img.shields.io/github/commit-activity/m/Lynricsy/OneSSH?color=64748b)](https://github.com/Lynricsy/OneSSH/pulse)
-[![Issues](https://img.shields.io/github/issues/Lynricsy/OneSSH?color=64748b)](https://github.com/Lynricsy/OneSSH/issues)
-[![Stars](https://img.shields.io/github/stars/Lynricsy/OneSSH?style=flat&label=stars&color=f59e0b)](https://github.com/Lynricsy/OneSSH/stargazers)
-
-[![GHCR](https://img.shields.io/badge/ghcr.io-lynricsy%2Fonessh-2dd4bf?logo=docker&logoColor=white)](https://github.com/Lynricsy/OneSSH/pkgs/container/onessh)
-[![Docker Hub](https://img.shields.io/badge/docker.io-lynricsy%2Fonessh-2dd4bf?logo=docker&logoColor=white)](https://hub.docker.com/r/lynricsy/onessh)
 [![MCP](https://img.shields.io/badge/MCP-Streamable%20HTTP-0d9488)](#mcp-接入)
-[![OAuth](https://img.shields.io/badge/OAuth-2.1%20%2B%20S256%20PKCE-0d9488)](#两种凭据)
-[![Platform](https://img.shields.io/badge/platform-Linux%20%C2%B7%20macOS%20%C2%B7%20Windows%20%C2%B7%20FreeBSD-334155)](#本地开发)
-[![Arch](https://img.shields.io/badge/arch-amd64%20%C2%B7%20arm64-334155)](#持续集成与镜像)
+[![UI](https://img.shields.io/badge/UI-React%2018%20%C2%B7%20Tailwind%20v4-2dd4bf)](#技术栈)
+[![Terminal](https://img.shields.io/badge/terminal-Ghostty%20Web-334155)](#会话常驻的终端)
+[![Editor](https://img.shields.io/badge/editor-CodeMirror%206-334155)](#多服务器文件管理)
 [![CGO](https://img.shields.io/badge/CGO-free-334155)](#本地开发)
+
+[**下载**](https://github.com/yunwuee/OneSSH/releases) · [**新增了什么**](#本版新增) · [**优化了什么**](#本版优化) · [**截图**](#界面预览) · [**快速开始**](#快速开始)
 
 </div>
 
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="概览" width="92%" />
+</p>
+
 ---
 
-## 为什么需要它
+## 本版新增
 
-让 Agent 直接持有 SSH 私钥，安全性并非无解——`authorized_keys` 的 `command=`、`from=`、`restrict`、`permitopen=`，以及 CA 证书的有效期和 principals，都能实打实地收窄一把钥匙。真正的问题是这些控制点**分散在每一台主机上**：调整一次授权要遍历所有机器，撤销同理；而 sshd 的日志只到会话粒度，看不出 Agent 究竟读写了哪些文件。OneSSH 把这些控制点收敛到网关一侧：
+一句话：**上游是一个给 Agent 用的 SSH 网关，这个版本让人也能每天用它管服务器。**
 
-- **凭据不出网关。** 私钥和密码由 32 字节主密钥经 AES-256-GCM 加密存储，只在建立 SSH 连接时解密，Agent 永远拿不到明文。
-- **权限可收敛。** 每个令牌绑定一组主机；执行权限与主机配置管理权限彼此独立，默认关闭后者。
-- **随时可撤销。** 令牌是网关侧的一行记录，删掉即失效，不需要登录每台机器轮换 `authorized_keys`。
-- **全程留痕。** 每次调用、每次权限拒绝都写审计；`exec`、`exec_many` 与 `job_start` 另有逐次命令记录，可查看真实退出码和 stdout / stderr。文件正文和编辑内容只记长度摘要。
+| 模块 | 新增内容 |
+|---|---|
+| 🗂️ **文件管理（重写）** | 多服务器标签页并持久保存 · 单栏 / 左右 / 上下双栏 · **跨服务器复制与移动**（Ctrl+C / Ctrl+V 或直接拖拽）· 传输队列与进度 · 同名冲突处理 · 在线编辑与媒体预览 · 压缩 / 解压 / 打包下载 · 权限修改 · 收藏目录 |
+| 💻 **终端（重写）** | 会话后台常驻，切页面不断 · 多标签 · 左右 / 上下 / 四宫格分屏 · **同步输入**（一次敲给所有服务器）· 快捷命令栏 · 输出搜索 · 导出日志 · 拖文件上传 · 7 套配色 |
+| 🖥️ **服务器档案** | 指标页新增系统、内核、CPU 型号、内存与交换、各挂载点、网卡与 DNS、监听端口、Top 进程、Docker 容器、待更新包与重启提示 |
+| 🗺️ **分布地图** | 按公网 IP 自动定位，世界地图展示节点、连线与真实 SSH 握手延迟；可手动标注机房 |
+| 🔐 **账户与设置** | 用户名 + 密码登录 · 记住我 30 天 · **控制台内修改密码**（bcrypt）· 登录设备管理与踢下线 · 登录记录 · 空闲自动退出 · 忘记密码一键重置 |
+| 🔑 **密钥上传** | WebUI 拖拽上传私钥文件，添加主机时就地上传；MCP 新增 `keys_list` / `key_generate` / `key_import` |
+| ⌨️ **命令面板** | `Ctrl+K` 全局跳转主机、页面与操作 |
 
-对 Agent 侧则是一个标准 MCP 服务：`exec`、`file_read`、`file_edit`、`grep`、`find`、`memory_remember`、`memory_recall` 等工具开箱即用；运维事实按主机跨会话持久保存。
+## 本版优化
+
+- **整体视觉重做**：统一的按钮、表格、空状态与弹窗；概览页 KPI、趋势、健康环图与磁盘排行；浅色 / 深色双主题打磨。
+- **上传改为流式**：不再整文件读入内存，单文件上限从 100 MiB 提到 **8 GiB**；下载支持 Range（视频可拖进度条、可断点续传）。
+- **编辑更安全**：保存时比对 SHA-256，文件被 Agent 或他人改过会提示冲突，不会静默覆盖；写入走临时文件 + 原子改名。
+- **删除有护栏**：拒绝删除 `/`、一级系统目录与登录用户家目录。
+- **预览防 XSS**：远端 HTML / SVG 一律以纯文本或沙箱方式返回，恶意文件无法在控制台源上执行脚本。
+- **会话可管理**：从「无状态 HMAC cookie」升级为服务端会话表，只存令牌摘要；改密码自动下线其他设备。
+- **终端更稳**：WebSocket 心跳防止代理 / NAT 空闲断线；尺寸变化防抖，分屏切换不再反复重排。
+- **服务器信息采集完整**：独立 SSH 通道拿完整输出，兼容 fish 等非 POSIX 登录 shell。
+- **静态资源修复**：以下划线开头的构建产物此前未被打进二进制，导致终端页偶发 MIME 报错。
+
+> [!NOTE]
+> 后端改动均附带测试（账户 / 会话、系统信息解析、删除护栏、预览类型等），`go test ./...` 与 `tsc --noEmit` 通过；关键流程用 Playwright 在真实服务器上做过端到端验证。
+
+## 界面预览
+
+<table>
+<tr>
+<td width="50%"><b>多服务器文件管理</b><br/><sub>双栏 · 跨服务器传输 · 多选浮动操作条</sub><br/><img src="docs/screenshots/files-dual.png" alt="文件管理" /></td>
+<td width="50%"><b>右键菜单</b><br/><sub>预览、编辑、复制到其他服务器、压缩、权限、在终端中打开…</sub><br/><img src="docs/screenshots/files-menu.png" alt="右键菜单" /></td>
+</tr>
+<tr>
+<td><b>在线编辑</b><br/><sub>CodeMirror 6 · 20+ 语言高亮 · Ctrl+S · 冲突检测</sub><br/><img src="docs/screenshots/editor.png" alt="编辑器" /></td>
+<td><b>终端分屏</b><br/><sub>会话常驻 · 同步输入 · 快捷命令</sub><br/><img src="docs/screenshots/terminal.png" alt="终端" /></td>
+</tr>
+<tr>
+<td><b>服务器档案</b><br/><sub>系统 / 内核 / 硬件 / 网络 / 端口 / 进程</sub><br/><img src="docs/screenshots/metrics.png" alt="服务器指标" /></td>
+<td><b>分布地图</b><br/><sub>自动定位 · 延迟 · 手动标注</sub><br/><img src="docs/screenshots/map.png" alt="分布地图" /></td>
+</tr>
+<tr>
+<td><b>主机</b><br/><sub>位置、延迟、标签与一键测试</sub><br/><img src="docs/screenshots/hosts.png" alt="主机" /></td>
+<td><b>系统设置</b><br/><sub>修改密码 · 登录设备 · 登录记录 · 偏好</sub><br/><img src="docs/screenshots/settings.png" alt="设置" /></td>
+</tr>
+<tr>
+<td><b>登录</b><br/><img src="docs/screenshots/login.png" alt="登录" /></td>
+<td><b>深色主题</b><br/><img src="docs/screenshots/dashboard-dark.png" alt="深色" /></td>
+</tr>
+</table>
+
+<sub>截图中的 IP 与主机名已替换为示例值。</sub>
+
+## 功能详解
+
+### 多服务器文件管理
+
+- **标签页 = 服务器 + 目录**，刷新后完整恢复（含前进 / 后退历史）；标签上的下拉可直接换服务器。
+- **跨服务器传输**：经网关两条 SFTP 连接流式中转，两台服务器之间**不需要互通**；同主机复制走 `cp -a`、移动走 `rename`，秒级完成。
+- **拖拽规则**：同服务器内默认移动，跨服务器默认复制；按住 `Ctrl` 强制复制、`Shift` 强制移动。本地文件 / 整个文件夹也可以直接拖进来上传。
+- **同名冲突**：覆盖 / 跳过 / 保留两者（自动命名为 `name (1).ext`）。
+- **快捷键**：`Ctrl+A/C/X/V`、`Delete`、`F2`、`F5`、`Enter`、`Backspace`、`Alt+←/→`、`Ctrl+F` 筛选、方向键 + `Shift` 多选。
+- **预览**：图片（缩放、缩略图、左右切换）、视频、音频、PDF。
+- **压缩 / 解压**：tar.gz / zip 压缩；tar、tar.gz、tar.xz、tar.bz2、tar.zst、zip、gz、7z 解压；目录或多选项目实时打包下载，不在远端落临时文件。
+
+### 会话常驻的终端
+
+- 会话由页面外的管理器持有：**切到文件页再回来，SSH 连接与回滚缓冲原样保留**；关闭标签页前会提醒。
+- 分屏：单窗格 / 左右 / 上下 / 四宫格，点标签决定放进哪个窗格；`Alt+1…9` 切换会话。
+- **同步输入**：开启后键盘输入同时发往所有已连接会话，适合批量巡检。
+- 快捷命令可增删改，默认内置系统概况、磁盘、内存、端口、Docker、日志等常用命令。
+- `Ctrl+Shift+F` 搜索输出，`Ctrl+Shift+C / V` 复制粘贴，右键粘贴，选中即复制；导出 `.log`。
+- 「在终端中打开」会直接 `cd` 到文件管理器里的当前目录。
+
+### 账户与安全
+
+| 能力 | 说明 |
+|---|---|
+| 登录 | 用户名（默认 `admin`，不区分大小写）+ 密码；同 IP 失败 10 次锁定 15 分钟 |
+| 修改密码 | 至少 8 位且含两类字符，bcrypt 存储；修改后其他设备立即下线 |
+| 会话 | 服务端会话表，只存 SHA-256 摘要；可列出、单独下线、一键下线其他设备 |
+| 记住我 | 勾选 30 天，不勾选 24 小时 |
+| 自动锁定 | 15 分钟 ~ 4 小时无操作自动退出（按浏览器设置） |
+| 找回 | `.env` 加 `ONESSH_ADMIN_RESET=1` 启动一次，密码恢复为 `ONESSH_ADMIN_PASSWORD` |
 
 ## 快速开始
 
-```sh
-export ONESSH_MASTER_KEY="$(openssl rand -hex 32)"
-export ONESSH_ADMIN_PASSWORD='replace-with-a-strong-password'
+### 直接运行（推荐）
 
-docker compose up -d
-curl --fail http://localhost:8866/healthz
+从 [Releases](https://github.com/yunwuee/OneSSH/releases) 下载对应平台的单文件二进制：
+
+```sh
+# Linux
+export ONESSH_MASTER_KEY_FILE=/opt/onessh/master.key
+(set -C; umask 077; openssl rand -hex 32 > "$ONESSH_MASTER_KEY_FILE")   # 仅首次
+export ONESSH_ADMIN_PASSWORD='replace-with-a-strong-password'
+export ONESSH_DATA_DIR=/opt/onessh/data
+./onessh-linux-amd64
 ```
 
-默认的 `docker-compose.yml` 会直接拉取 `ghcr.io/lynricsy/onessh:latest`，无需在部署机器上构建镜像。
+```powershell
+# Windows PowerShell
+$env:ONESSH_MASTER_KEY_FILE = "D:\onessh\master.key"
+$env:ONESSH_ADMIN_PASSWORD  = "replace-with-a-strong-password"
+$env:ONESSH_DATA_DIR        = "D:\onessh\data"
+$env:ONESSH_LISTEN          = "127.0.0.1:8866"
+.\onessh-windows-amd64.exe
+```
 
-打开 <http://localhost:8866/>，然后：
-
-1. 用 `ONESSH_ADMIN_PASSWORD` 登录控制台。
-2. 在**密钥**页生成 ed25519 密钥或导入 OpenSSH 私钥；受口令保护的私钥在导入时填写口令，网关解密后改由主密钥加密保存，口令本身不落库。也可以直接用主机密码。
-3. 在**主机**页添加目标并点击「测试」，首次连接会记录 TOFU 指纹；目标无法直达时，可选择已配置主机作为跳板。
-4. 在**令牌**页创建 Agent 令牌并选择执行范围；或者让支持 MCP OAuth 的客户端直接连 `/mcp`，在授权页勾选同样的主机与权限。
-5. 手工令牌的明文只显示一次，立刻复制进 Agent 的安全配置。
+打开 <http://localhost:8866/>，用户名 `admin`、密码为 `ONESSH_ADMIN_PASSWORD`，登录后建议立即在「系统设置」里改成你自己的密码。
 
 > [!WARNING]
-> 主密钥丢失后，已加密的 SSH 密钥和密码**无法恢复**。生产环境必须持久化保存主密钥，不要每次启动重新生成。
+> 主密钥丢失后，已加密的 SSH 密钥和密码**无法恢复**。务必备份 `master.key`，不要每次启动重新生成。
 
-不想让主密钥出现在环境变量里，可以改用 Docker secrets：把密钥写入 `master.key`，把 `ONESSH_MASTER_KEY` 置空，再叠加一个 `compose.secrets.yml`：
-
-```yaml
-services:
-  onessh:
-    environment:
-      ONESSH_MASTER_KEY_FILE: /run/secrets/onessh_master_key
-    secrets:
-      - onessh_master_key
-secrets:
-  onessh_master_key:
-    file: ./master.key
-```
+### 从源码构建
 
 ```sh
-# 已有部署：把当前主密钥原样写入文件，切勿重新生成，否则已加密凭据无法解密。
-# 全新部署把第一行换成：(set -C; umask 077; openssl rand -hex 32 > master.key) &&
-# set -C 拒绝覆盖已存在的 master.key；任一步失败都不会继续。
-# 之后把 ONESSH_MASTER_KEY 置空：与文件互斥，但 compose 仍要求该变量已定义，down 等命令也一样。
-(set -C; umask 077; printf '%s\n' "${ONESSH_MASTER_KEY:?请先导出当前主密钥}" > master.key) &&
-  export ONESSH_MASTER_KEY= &&
-  docker compose -f docker-compose.yml -f compose.secrets.yml up -d
+cd web && npm ci && npm run build && cd ..
+CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$(git describe --tags)" -o onessh ./cmd/onessh
 ```
 
-停服不会删数据；只有确实要清空数据库和密钥时才带 `-v`：
+### 新增的环境变量
 
-```sh
-docker compose down      # 保留数据卷
-docker compose down -v   # 连数据一起删除
-```
-
-## 架构
-
-```mermaid
-flowchart LR
-    subgraph clients["客户端"]
-        direction TB
-        Agent["AI Agent"]
-        Browser["浏览器控制台"]
-    end
-
-    Gateway["OneSSH 网关<br/>单个 Go 二进制 · :8866"]
-
-    subgraph state["本地状态"]
-        direction TB
-        DB[("SQLite<br/>/data/onessh.db")]
-        Art["命令输出与 artifacts<br/>/data/command-runs · /data/artifacts"]
-    end
-
-    subgraph remote["远端主机"]
-        direction TB
-        H1["SSH 主机 A"]
-        H2["SSH 主机 B"]
-    end
-
-    Agent -->|"无状态 Streamable HTTP<br/>OAuth 2.1 / Bearer"| Gateway
-    Browser -->|"REST · SSE · WebSocket"| Gateway
-    Gateway --> DB
-    Gateway --> Art
-    Gateway -->|"SSH · SFTP"| H1
-    Gateway -->|"SSH · SFTP"| H2
-
-    classDef gw fill:#0d9488,stroke:#0f766e,color:#ffffff
-    class Gateway gw
-```
-
-后端只用 Go 标准库的 HTTP 路由，配合 `modelcontextprotocol/go-sdk`、`x/crypto/ssh`、`pkg/sftp` 和 CGO-free 的纯 Go SQLite。前端是 React 18 + React Router 7 + TanStack Query + Tailwind CSS v4，在 Radix UI 之上自建组件体系（浅色 / 深色 / 跟随系统三档主题），终端用 Ghostty Web 的 WASM + Canvas 实现，图表用 Recharts，最后由 `go:embed` 整体打进二进制——部署物就是一个文件。
-
-## 能力总览
-
-| 领域 | 能力 |
+| 变量 | 说明 |
 |---|---|
-| **连接** | SSH 主机与 OpenSSH 密钥管理，密码与密钥两种认证；连接复用与 keepalive |
-| **凭据** | 私钥与密码经 AES-256-GCM 加密存储，仅在建立 SSH 连接时解密 |
-| **信任** | TOFU 主机指纹，指纹变更直接拒绝连接，重装后需在 WebUI 显式重置 |
-| **授权** | MCP OAuth 2.1 授权码流程：S256 PKCE、动态客户端注册、刷新令牌轮换、授权时选择主机范围 |
-| **执行** | 持久 cwd/env 的命令会话、超时控制、并发批量执行、大输出转 artifact |
-| **任务** | 后台任务的启动、状态、日志与终止，远端不留常驻组件 |
-| **文件** | SFTP 读取、原子写入、`expected_sha256` 乐观锁编辑、目录浏览、跨主机传输 |
-| **搜索** | `grep` / `find` 优先调用远端 ripgrep / fd，缺失时使用临时静态 helper 或纯 SFTP 自动降级 |
-| **多媒体** | PNG、JPEG、GIF 首帧、WebP 的查看与缩放 |
-| **监控** | Linux CPU、内存、负载、磁盘指标采集，保留 7 天 |
-| **记忆** | 每台主机独立 bank + 全局 bank；FTS5、重要度与时近度混合召回，可选 OpenAI 兼容语义向量 |
-| **控制台** | React 管理界面、记忆筛选与删除、SSE 实时活动流、Ghostty Web 浏览器终端 |
-| **审计** | 结构化审计记录，保留调用令牌名称与 ID；文件正文与编辑内容只留长度摘要 |
+| `ONESSH_ADMIN_RESET` | 设为 `1` 启动一次：管理员密码恢复为环境变量里的值，并注销所有会话 |
+| `ONESSH_GEOIP` | 设为 `off` 关闭分布地图的自动 IP 定位（默认使用 ip-api.com） |
 
-> [!NOTE]
-> **目标主机平台要求**：OneSSH 服务端可部署在 Linux / macOS / Windows / FreeBSD 上，但被管理的远程 SSH 目标主机当前默认要求 POSIX shell（`exec`、`exec_many`、`job_start`）与 Linux `/proc`（`host_status` 监控）。连接 Windows OpenSSH 目标主机时，目前仅 SFTP 相关工具（`file_*` 及降级为纯 SFTP 的 `grep`/`find`）可用。
+其余配置与上游完全一致，见下文 [配置](#配置)。
+
+## 技术栈
+
+后端：Go 标准库 HTTP 路由 · `x/crypto/ssh` · `pkg/sftp` · 纯 Go SQLite（CGO-free）· `golang.org/x/crypto/bcrypt`
+
+前端：React 18 · React Router 7 · TanStack Query · Tailwind CSS v4 · Radix UI · Ghostty Web（WASM 终端）· CodeMirror 6 · Recharts · d3-geo + world-atlas · `go:embed` 打包为单文件
+
+<details>
+<summary><b>本版新增的管理 API</b></summary>
+
+```text
+POST   /api/v1/logout
+GET    /api/v1/account                       账户、会话、登录记录
+PUT    /api/v1/account/password              修改密码
+PUT    /api/v1/account/profile               修改用户名
+DELETE /api/v1/account/sessions/{id}         下线指定会话
+POST   /api/v1/account/sessions/revoke-others
+
+GET    /api/v1/sftp/{host}/ls | stat | read | archive
+PUT    /api/v1/sftp/{host}/write
+POST   /api/v1/sftp/{host}/mkdir | create | rename | delete | chmod | compress | extract | upload
+GET    /api/v1/sftp/transfers                跨服务器传输任务
+POST   /api/v1/sftp/transfers
+DELETE /api/v1/sftp/transfers/{id}
+
+GET    /api/v1/hosts/{id}/sysinfo            服务器档案（?refresh=1 强制重采）
+GET    /api/v1/system                        网关自身信息
+GET    /api/v1/geo  ·  /api/v1/geo/latency  ·  PUT/DELETE /api/v1/geo/{host}
+GET    /api/v1/ws/terminal?host=&cwd=        终端（新增 cwd）
+```
+
+</details>
+
+---
+
+<div align="center"><sub>以下为上游原有文档，保留供参考</sub></div>
+
+## 为什么需要它
+
+让 Agent 直接持有 SSH 私钥，真正的问题是授权、撤销和审计这些控制点**分散在每一台主机上**。OneSSH 把它们收敛到网关一侧：
+
+- **凭据不出网关。** 私钥和密码由 32 字节主密钥经 AES-256-GCM 加密存储，只在建立 SSH 连接时解密，Agent 永远拿不到明文。
+- **权限可收敛。** 每个令牌绑定一组主机；执行权限与主机配置管理权限彼此独立。
+- **随时可撤销。** 令牌是网关侧的一行记录，删掉即失效。
+- **全程留痕。** 每次调用、每次权限拒绝都写审计；命令有逐次记录，可查看真实退出码与输出。
+
+对 Agent 侧则是一个标准 MCP 服务：`exec`、`file_read`、`file_edit`、`grep`、`find`、`memory_remember`、`memory_recall` 等工具开箱即用。
 
 ## MCP 接入
 
@@ -529,24 +585,10 @@ docker pull lynricsy/onessh:latest
 - 令牌与 OAuth 授权都按最小权限分配主机，不再使用立即删除。
 - 不要把 `ONESSH_MASTER_KEY`、`master.key` 等主密钥文件、管理员密码、Agent 令牌、OAuth 令牌或导出的数据卷提交到版本控制。
 
-## 友情链接
+## 致谢
 
-- [LINUX DO](https://linux.do/)
-
-## Star History
-
-<div align="center">
-
-<a href="https://github.com/Lynricsy/OneSSH/stargazers">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/star-history-dark.svg" />
-    <source media="(prefers-color-scheme: light)" srcset=".github/assets/star-history-light.svg" />
-    <img alt="OneSSH Star History" src=".github/assets/star-history-light.svg" width="720" />
-  </picture>
-</a>
-
-</div>
+本项目 fork 自 [Lynricsy/OneSSH](https://github.com/Lynricsy/OneSSH)，后端架构、MCP 协议实现、OAuth、记忆系统等核心能力均来自上游，感谢原作者的出色工作。本 fork 的改动集中在 Web 控制台与运维交互体验。
 
 ## 许可证
 
-[GNU General Public License v3.0](LICENSE)。你可以自由使用、修改和分发本项目；分发修改版或基于它的衍生作品时，必须同样以 GPL-3.0 提供完整对应源码。
+与上游一致，见 [LICENSE](LICENSE)。
