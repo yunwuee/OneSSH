@@ -21,6 +21,7 @@ import type { GeoInfo, GeoManualPayload } from '@/api/types'
 import { CountryFlag } from '@/components/country-flag'
 import { LatencyPill, LocationCell } from '@/components/location-cell'
 import { WorldMap, countryFill, type MapPoint } from '@/components/world-map'
+import { GlobeMap } from '@/components/globe-map'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -159,12 +160,19 @@ function toForm(info: GeoInfo): EditState['form'] {
   }
 }
 
+/** 地球仪与平面地图共用同一套数据与叠加层，只是渲染方式不同 */
+function MapView({ mode, centerLon, ...props }: React.ComponentProps<typeof WorldMap> & { mode: 'globe' | 'flat' }) {
+  return mode === 'globe' ? <GlobeMap {...props} /> : <WorldMap centerLon={centerLon} {...props} />
+}
+
 export function MapPage() {
   const [params, setParams] = useSearchParams()
   const [centerLon, setCenterLon] = useState<number>(() => {
     const saved = Number(localStorage.getItem('onessh-map-center'))
     return VIEWS.some((v) => v.value === saved) ? saved : 150
   })
+  const [mode, setMode] = useState<'globe' | 'flat'>(() => (localStorage.getItem('onessh-map-mode') === 'flat' ? 'flat' : 'globe'))
+  useEffect(() => localStorage.setItem('onessh-map-mode', mode), [mode])
   const [includeArchived, setIncludeArchived] = useState(false)
   const [showArcs, setShowArcs] = useState(true)
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
@@ -308,7 +316,16 @@ export function MapPage() {
         subtitle="按公网 IP 自动定位 · 国家/地区颜色越深表示服务器越多"
         actions={
           <>
-            <Segmented label="地图视角" value={centerLon} onChange={setCenterLon} options={VIEWS} />
+            <Segmented
+              label="地图样式"
+              value={mode}
+              onChange={setMode}
+              options={[
+                { value: 'globe' as const, label: '地球仪' },
+                { value: 'flat' as const, label: '平面' },
+              ]}
+            />
+            {mode === 'flat' && <Segmented label="地图视角" value={centerLon} onChange={setCenterLon} options={VIEWS} />}
             <Button variant="outline" onClick={() => refresh.mutate()} loading={refresh.isPending}>
               {!refresh.isPending && <ArrowsClockwise size={15} />}
               重新定位
@@ -370,9 +387,10 @@ export function MapPage() {
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
           <Card className="relative overflow-hidden p-0">
             {loading ? (
-              <Skeleton className="aspect-[960/500] w-full rounded-none" />
+              <Skeleton className={cn('w-full rounded-none', mode === 'globe' ? 'aspect-[960/600]' : 'aspect-[960/500]')} />
             ) : (
-              <WorldMap
+              <MapView
+                mode={mode}
                 points={points}
                 countries={data.countryStats}
                 origin={
@@ -446,10 +464,10 @@ export function MapPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </WorldMap>
+              </MapView>
             )}
             <p className="border-t border-border px-4 py-2 text-[11px] text-faint">
-              滚轮缩放 · 拖动平移 · 双击放大 · 点击落点查看详情。位置由 ip-api.com 按公网 IP 推断，仅供参考；地图为示意图，不代表任何边界立场。
+              {mode === 'globe' ? '拖动旋转地球（松手有惯性）· 滚轮缩放 · 双击放大 · 点击落点转到正面 · 空闲时缓慢自转。' : '滚轮缩放 · 拖动平移 · 双击放大 · 点击落点查看详情。'}位置由 ip-api.com 按公网 IP 推断，仅供参考；地图为示意图，不代表任何边界立场。
               {!data.enabled && ' 当前已设置 ONESSH_GEOIP=off，只显示手动标注的位置。'}
             </p>
           </Card>
